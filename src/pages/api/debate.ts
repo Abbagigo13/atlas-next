@@ -2,10 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { localDebate } from '@/lib/atlas/localAgents';
 import type { DebateResult, Decision, Ticker } from '@/lib/atlas/types';
 
-const MODEL = 'qwen-plus';
+const MODEL = 'qwen3.8-max';
 const QWEN_URL =
   process.env.QWEN_BASE_URL ??
-  'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
+  'https://hackathon.bitgetops.com/v1/chat/completions';
 
 function apiKey() {
   return process.env.QWEN_API_KEY ?? process.env.NEXT_PUBLIC_QWEN_API_KEY ?? '';
