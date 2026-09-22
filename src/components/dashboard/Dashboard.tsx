@@ -16,6 +16,7 @@ import { getSymbol, fmtPct, fmtUsd } from '@/lib/atlas/symbols';
 import { useDebate } from '@/lib/atlas/useDebate';
 import { usePaper } from '@/lib/atlas/usePaper';
 import type { Decision, Ticker } from '@/lib/atlas/types';
+import PriceChart from './PriceChart';
 
 const POLL_MS = 15_000;
 const AUTO_MS = 5 * 60_000;
@@ -194,8 +195,9 @@ export default function Dashboard() {
 
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:py-8">
             {panel === 'debate' && (
-              <div className="flex flex-col gap-5">
-                <DebatePanel
+  <div className="flex flex-col gap-5">
+    <PriceChart symbol={symbol} symbolLabel={spec.label} ticker={ticker} />
+    <DebatePanel
                   messages={debate.messages}
                   typing={debate.typing}
                   status={debate.status}

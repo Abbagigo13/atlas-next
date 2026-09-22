@@ -12,6 +12,17 @@ export type Ticker = {
   ts: number;
 };
 
+export type CandleInterval = '15m' | '1h' | '4h' | '1d';
+
+export type Candle = { t: number; o: number; h: number; l: number; c: number };
+
+export type CandlesResponse = {
+  symbol: string;
+  interval: CandleInterval;
+  candles: Candle[];
+  source: 'bitget' | 'coingecko' | 'mock';
+};
+
 export type DebateMessage = {
   agent: AgentId;
   text: string;
