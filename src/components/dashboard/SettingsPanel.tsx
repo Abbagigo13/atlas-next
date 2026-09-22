@@ -52,7 +52,7 @@ function Toggle({
       >
         <span
           className={[
-            'absolute top-[3px] h-[18px] w-[18px] rounded-full transition-transform duration-300',
+            'absolute top-0.75 h-[18px] w-[18px] rounded-full transition-transform duration-300',
             checked ? 'translate-x-[22px] bg-signal-bright' : 'translate-x-[3px] bg-white/70',
           ].join(' ')}
         />
@@ -138,7 +138,7 @@ export default function SettingsPanel({ settings, onChange, onReset, dataSource,
             <dt className="text-[10px] font-bold tracking-[0.16em] text-muted-foreground">REASONING</dt>
             <dd className="mt-1.5 font-mono text-sm text-white/85">{aiSource}</dd>
             <dd className="mt-1 text-[11px] text-muted-foreground">
-              Set QWEN_API_KEY in .env.local for qwen-plus reasoning
+              Set QWEN_API_KEY in .env.local for qwen3.8-max reasoning
             </dd>
           </div>
         </dl>

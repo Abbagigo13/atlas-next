@@ -73,7 +73,7 @@ export default function DebatePanel({ messages, typing, status, meta, error, sym
         </div>
         {meta && (
           <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-            {meta.source === 'qwen' ? `qwen-plus · ${(meta.latencyMs / 1000).toFixed(1)}s` : `${meta.model} · ${(meta.latencyMs / 1000).toFixed(1)}s`}
+            {meta.source === 'qwen' ? `qwen3.8-max · ${(meta.latencyMs / 1000).toFixed(1)}s` : `${meta.model} · ${(meta.latencyMs / 1000).toFixed(1)}s`}
           </span>
         )}
       </div>

@@ -10,7 +10,7 @@ import Reveal from './Reveal';
 
 const STACK = [
   { label: 'Bitget Agent Hub', icon: Bot },
-  { label: 'Qwen API (qwen-plus)', icon: Brain },
+  { label: 'Qwen API (qwen3.8-max)', icon: Brain },
   { label: 'Next.js 16', icon: Rocket },
   { label: 'TypeScript', icon: Code2 },
   { label: 'Tailwind CSS v4', icon: Palette },

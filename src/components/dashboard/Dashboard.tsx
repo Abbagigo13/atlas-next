@@ -253,7 +253,7 @@ export default function Dashboard() {
                   flash('Paper account reset to $3,000');
                 }}
                 dataSource={ticker?.source ?? 'connecting…'}
-                aiSource={debate.meta?.source === 'qwen' ? 'qwen-plus (live)' : 'atlas local agents'}
+                aiSource={debate.meta?.source === 'qwen' ? 'qwen3.8-max (live)' : 'atlas local agents'}
               />
             )}
           </main>
@@ -271,7 +271,7 @@ export default function Dashboard() {
       />
 
       {toast && (
-        <div className="glass rise-in fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-2xl">
+        <div className="glass rise-in fixed bottom-5 left-1/2 z-90 -translate-x-1/2 rounded-full px-5 py-3 text-sm font-semibold text-white shadow-2xl">
           {toast}
         </div>
       )}
