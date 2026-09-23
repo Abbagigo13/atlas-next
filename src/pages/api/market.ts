@@ -2,6 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSymbol } from '@/lib/atlas/symbols';
 import type { Ticker } from '@/lib/atlas/types';
 
+const CACHE_TTL_MS = 12_000;
+const tickerCache = new Map<string, { data: Ticker; expires: number }>();
+
 const num = (v: unknown) => {
   const n = typeof v === 'string' ? Number.parseFloat(v) : typeof v === 'number' ? v : NaN;
   return Number.isFinite(n) ? n : NaN;
@@ -117,6 +120,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const key = typeof req.query.symbol === 'string' ? req.query.symbol : 'BTC';
   const spec = getSymbol(key);
 
+  const cached = tickerCache.get(spec.key);
+  if (cached && cached.expires > Date.now()) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(cached.data);
+  }
+
   type Quote = {
     price: number;
     change24h: number;
@@ -133,12 +142,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     () => coingecko(spec.coingecko),
   ];
 
-  for (const step of chain) {
+    for (const step of chain) {
     try {
       const q = await step();
-      if (q && Number.isFinite(q.price)) {
-        res.setHeader('Cache-Control', 'no-store');
-        return res.status(200).json({
+            if (q && Number.isFinite(q.price)) {
+        console.log(`[market] ${spec.key} resolved via ${q.source}`);
+        const ticker: Ticker = {
           symbol: spec.key,
           label: spec.label,
           price: q.price,
@@ -148,19 +157,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
           volume24h: Number.isFinite(q.volume24h) ? q.volume24h : 0,
           source: q.source,
           ts: Date.now(),
-        });
+        };
+        tickerCache.set(spec.key, { data: ticker, expires: Date.now() + CACHE_TTL_MS });
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(ticker);
       }
-    } catch {
-      // try the next source
+        } catch (err) {
+      console.error(`[market] ${spec.key} source failed:`, err instanceof Error ? err.message : err);
     }
   }
 
-  const q = mock(spec.fallbackPrice);
-  res.setHeader('Cache-Control', 'no-store');
-  return res.status(200).json({
+    const q = mock(spec.fallbackPrice);
+  const ticker: Ticker = {
     symbol: spec.key,
     label: spec.label,
     ...q,
     ts: Date.now(),
-  });
+  };
+  tickerCache.set(spec.key, { data: ticker, expires: Date.now() + 5_000 });
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).json(ticker);
 }

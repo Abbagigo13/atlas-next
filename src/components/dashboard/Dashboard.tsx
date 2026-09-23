@@ -231,8 +231,7 @@ export default function Dashboard() {
   <div className="flex flex-col gap-5">
     <Watchlist active={symbol} onSelect={setSymbol} />
 <PriceChart symbol={symbol} symbolLabel={spec.label} ticker={ticker} />
-    <PriceChart symbol={symbol} symbolLabel={spec.label} ticker={ticker} />
-    <DebatePanel
+<DebatePanel
                   messages={debate.messages}
                   typing={debate.typing}
                   status={debate.status}
