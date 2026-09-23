@@ -3,6 +3,7 @@
 import {
   Activity,
   BarChart3,
+  History,
   MessagesSquare,
   Settings as SettingsIcon,
   Triangle,
@@ -13,12 +14,13 @@ import {
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 
-export type PanelId = 'debate' | 'positions' | 'log' | 'portfolio' | 'agents' | 'settings';
+export type PanelId = 'debate' | 'positions' | 'log' | 'history' | 'portfolio' | 'agents' | 'settings';
 
 export const PANELS: Array<{ id: PanelId; label: string; icon: LucideIcon }> = [
   { id: 'debate', label: 'Debate', icon: MessagesSquare },
   { id: 'positions', label: 'Open Positions', icon: Activity },
   { id: 'log', label: 'Trade Log', icon: BarChart3 },
+  { id: 'history', label: 'History', icon: History },
   { id: 'portfolio', label: 'Portfolio', icon: Wallet },
   { id: 'agents', label: 'Agents', icon: Users },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
@@ -111,7 +113,7 @@ export default function Sidebar({
         })}
       </nav>
 
-      <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+      <div className="rounded-2xl border border-white/8 bg-white/2 p-4">
         <p className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
           <span className="pulse-ring-green h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Paper book · no real funds
@@ -128,13 +130,13 @@ export default function Sidebar({
 
   return (
     <>
-      <aside className="glass sticky top-0 hidden h-screen w-[16.5rem] shrink-0 border-r border-white/8 lg:block">
+      <aside className="glass sticky top-0 hidden h-screen w-66 shrink-0 border-r border-white/8 lg:block">
         {body}
       </aside>
 
       <div
         className={[
-          'fixed inset-0 z-[70] lg:hidden',
+          'fixed inset-0 z-70 lg:hidden',
           open ? 'pointer-events-auto' : 'pointer-events-none',
         ].join(' ')}
         aria-hidden={!open}
@@ -145,7 +147,7 @@ export default function Sidebar({
         />
         <div
           className={[
-            'absolute inset-y-0 left-0 w-[17rem] max-w-[85vw] border-r border-white/10 bg-[#0b1120]/98 backdrop-blur-2xl transition-transform duration-300',
+            'absolute inset-y-0 left-0 w-68 max-w-[85vw] border-r border-white/10 bg-[#0b1120]/98 backdrop-blur-2xl transition-transform duration-300',
             open ? 'translate-x-0' : '-translate-x-full',
           ].join(' ')}
         >

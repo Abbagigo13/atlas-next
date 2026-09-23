@@ -17,6 +17,9 @@ import { useDebate } from '@/lib/atlas/useDebate';
 import { usePaper } from '@/lib/atlas/usePaper';
 import type { Decision, Ticker } from '@/lib/atlas/types';
 import PriceChart from './PriceChart';
+import HistoryPanel from './HistoryPanel';
+import { useDebateHistory } from '@/lib/atlas/useDebateHistory';
+import Watchlist from './Watchlist';
 
 const POLL_MS = 15_000;
 const AUTO_MS = 5 * 60_000;
@@ -25,7 +28,9 @@ export default function Dashboard() {
   const paper = usePaper();
   const { settings } = paper.state;
   const debate = useDebate(settings.speed);
-
+  const history = useDebateHistory();
+  const historyStamp = useRef<string | null>(null);
+  const fallbackFlagged = useRef<string | null>(null);
   const [panel, setPanel] = useState<PanelId>('debate');
   const [menuOpen, setMenuOpen] = useState(false);
   const [symbol, setSymbol] = useState('BTC');
@@ -47,6 +52,14 @@ export default function Dashboard() {
     setToast(msg);
     window.setTimeout(() => setToast((t) => (t === msg ? null : t)), 3200);
   }, []);
+
+  useEffect(() => {
+    if (!debate.meta?.fellBack) return;
+    const stamp = `${symbol}-${debate.meta.latencyMs}`;
+    if (fallbackFlagged.current === stamp) return;
+    fallbackFlagged.current = stamp;
+    flash('Qwen unavailable — fell back to local reasoning for this debate');
+  }, [debate.meta, symbol, flash]);
 
   const fetchTicker = useCallback(async (key: string): Promise<Ticker | null> => {
     try {
@@ -156,6 +169,26 @@ export default function Dashboard() {
   }, [settings.autoMode, debate.running, startDebate]);
 
   const spec = getSymbol(symbol);
+  useEffect(() => {
+    if (debate.status !== 'done' || !debate.decision || !debate.meta) return;
+    const t = tickerRef.current;
+    if (!t || t.symbol !== symbol) return;
+    const stamp = `${symbol}-${debate.decision.entry}-${debate.decision.action}-${debate.meta.latencyMs}`;
+    if (historyStamp.current === stamp) return;
+    historyStamp.current = stamp;
+    history.add({
+      id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
+      ts: Date.now(),
+      symbol,
+      label: spec.label,
+      price: t.price,
+      source: debate.meta.source as 'qwen' | 'local',
+      model: debate.meta.model,
+      decision: debate.decision,
+      messages: debate.messages,
+    });
+  }, [debate.status, debate.decision, debate.meta, debate.messages, symbol, spec.label, history]);
+
   const decisionStamp = debate.decision
     ? `${symbol}-${debate.decision.entry}-${debate.decision.action}`
     : null;
@@ -196,6 +229,8 @@ export default function Dashboard() {
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:py-8">
             {panel === 'debate' && (
   <div className="flex flex-col gap-5">
+    <Watchlist active={symbol} onSelect={setSymbol} />
+<PriceChart symbol={symbol} symbolLabel={spec.label} ticker={ticker} />
     <PriceChart symbol={symbol} symbolLabel={spec.label} ticker={ticker} />
     <DebatePanel
                   messages={debate.messages}
@@ -227,6 +262,13 @@ export default function Dashboard() {
             )}
 
             {panel === 'log' && <TradeLogPanel trades={paper.state.trades} />}
+            {panel === 'history' && (
+  <HistoryPanel
+    records={history.records}
+    positions={paper.state.positions}
+    trades={paper.state.trades}
+  />
+)}
 
             {panel === 'portfolio' && (
               <PortfolioPanel

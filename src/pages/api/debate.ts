@@ -91,16 +91,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({
       symbol: ticker.symbol,
       price: ticker.price,
-      source: 'local',
+            source: 'local',
       model: 'atlas-local-agents',
       messages: local.messages.map((m, i) => ({ ...m, ts: started + i })),
       decision: local.decision,
       latencyMs: Date.now() - started,
+      fellBack: false,
     });
   }
 
   try {
-    const bull = await qwen([
+           const bull = await qwen([
       {
         role: 'system',
         content:
@@ -108,6 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       },
       { role: 'user', content: `${brief}\n\nMake the long case. Include an entry, an invalidation level and a target.` },
     ]);
+    const bullTs = Date.now();
 
     const bear = await qwen([
       {
@@ -120,6 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         content: `${brief}\n\nThe Bull Agent said:\n"${bull}"\n\nRebut it and state what would have to happen before you would size up.`,
       },
     ]);
+    const bearTs = Date.now();
 
     const riskRaw = await qwen(
       [
@@ -135,6 +138,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       ],
       420,
     );
+    const riskTs = Date.now();
 
     const decision = sanitize(extractJson(riskRaw) ?? {}, ticker, local.decision);
 
@@ -157,22 +161,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     } catch {
       trader = local.messages[3].text;
     }
+    const traderTs = Date.now();
 
-    const ts = Date.now();
     return res.status(200).json({
       symbol: ticker.symbol,
       price: ticker.price,
       source: 'qwen',
       model: MODEL,
+      fellBack: false,
       messages: [
-        { agent: 'bull', text: bull, ts: ts + 1 },
-        { agent: 'bear', text: bear, ts: ts + 2 },
+        { agent: 'bull', text: bull, ts: bullTs },
+        { agent: 'bear', text: bear, ts: bearTs },
         {
           agent: 'risk',
           text: `Verdict: ${decision.action} · entry ${decision.entry} · stop ${decision.stop} · target ${decision.target} · size ${decision.sizeMultiplier}x · R:R ${decision.riskReward}. ${decision.reasoning}`,
-          ts: ts + 3,
+          ts: riskTs,
         },
-        { agent: 'trader', text: trader, ts: ts + 4 },
+        { agent: 'trader', text: trader, ts: traderTs },
       ],
       decision,
       latencyMs: Date.now() - started,
@@ -186,6 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       messages: local.messages.map((m, i) => ({ ...m, ts: started + i })),
       decision: local.decision,
       latencyMs: Date.now() - started,
+      fellBack: true,
     });
   }
 }

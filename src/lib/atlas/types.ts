@@ -50,6 +50,19 @@ export type DebateResult = {
   messages: DebateMessage[];
   decision: Decision;
   latencyMs: number;
+  fellBack: boolean;
+};
+
+export type DebateRecord = {
+  id: string;
+  ts: number;
+  symbol: string;
+  label: string;
+  price: number;
+  source: 'qwen' | 'local';
+  model: string;
+  decision: Decision;
+  messages: DebateMessage[];
 };
 
 export type Position = {

@@ -12,7 +12,7 @@ export function useDebate(speed: 'instant' | 'realistic') {
   const [messages, setMessages] = useState<DebateMessage[]>([]);
   const [typing, setTyping] = useState<AgentId | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
-  const [meta, setMeta] = useState<{ source: string; model: string; latencyMs: number } | null>(null);
+  const [meta, setMeta] = useState<{ source: string; model: string; latencyMs: number; fellBack: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const runId = useRef(0);
   const timers = useRef<number[]>([]);
@@ -52,7 +52,7 @@ export function useDebate(speed: 'instant' | 'realistic') {
         const data = (await res.json()) as DebateResult;
         if (id !== runId.current) return null;
 
-        setMeta({ source: data.source, model: data.model, latencyMs: data.latencyMs });
+                setMeta({ source: data.source, model: data.model, latencyMs: data.latencyMs, fellBack: data.fellBack });
         const ordered = [...data.messages].sort(
           (a, b) => ORDER.indexOf(a.agent) - ORDER.indexOf(b.agent),
         );
@@ -65,9 +65,12 @@ export function useDebate(speed: 'instant' | 'realistic') {
           return data;
         }
 
-        setStatus('streaming');
-        const gap = 1500;
+                setStatus('streaming');
+        let cumulative = 0;
         ordered.forEach((msg, i) => {
+          const delta =
+            i === 0 ? 350 : Math.min(Math.max(msg.ts - ordered[i - 1].ts, 400), 3000);
+          cumulative += delta;
           const t = window.setTimeout(() => {
             if (id !== runId.current) return;
             setMessages((prev) => [...prev, msg]);
@@ -75,7 +78,7 @@ export function useDebate(speed: 'instant' | 'realistic') {
             setTyping(next ? next.agent : null);
             if (msg.agent === 'risk') setDecision(data.decision);
             if (!next) setStatus('done');
-          }, gap * i + 350);
+          }, cumulative);
           timers.current.push(t);
         });
         return data;
