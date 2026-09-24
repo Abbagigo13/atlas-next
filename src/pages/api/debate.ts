@@ -13,7 +13,7 @@ function apiKey() {
 
 async function qwen(messages: Array<{ role: string; content: string }>, maxTokens = 320) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25_000);
+    const timer = setTimeout(() => ctrl.abort(), 14_000);
   try {
     const r = await fetch(QWEN_URL, {
       method: 'POST',
