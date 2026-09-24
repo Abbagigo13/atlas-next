@@ -17,12 +17,11 @@ export const SYMBOLS: SymbolSpec[] = [
   { key: 'BTC', label: 'BTC/USDT', bitget: 'BTCUSDT', coingecko: 'bitcoin', cmc: 'BTC', fallbackPrice: 77150, kind: 'crypto' },
   { key: 'ETH', label: 'ETH/USDT', bitget: 'ETHUSDT', coingecko: 'ethereum', cmc: 'ETH', fallbackPrice: 2410, kind: 'crypto' },
   { key: 'SOL', label: 'SOL/USDT', bitget: 'SOLUSDT', coingecko: 'solana', cmc: 'SOL', fallbackPrice: 128.4, kind: 'crypto' },
-  { key: 'rTSLA', label: 'rTSLA/USDT', bitget: 'TSLAUSDT', fallbackPrice: 402.6, kind: 'tokenized-stock' },
-  { key: 'rNVDA', label: 'rNVDA/USDT', bitget: 'NVDAUSDT', fallbackPrice: 183.2, kind: 'tokenized-stock' },
-  { key: 'rAAPL', label: 'rAAPL/USDT', bitget: 'AAPLUSDT', fallbackPrice: 262.8, kind: 'tokenized-stock' },
-  { key: 'rMSFT', label: 'rMSFT/USDT', bitget: 'MSFTUSDT', fallbackPrice: 489.5, kind: 'tokenized-stock' },
-  { key: 'rMETA', label: 'rMETA/USDT', bitget: 'METAUSDT', fallbackPrice: 611.9, kind: 'tokenized-stock' },
-];
+  { key: 'rTSLA', label: 'rTSLA/USDT', bitget: 'RTSLAUSDT', fallbackPrice: 402.6, kind: 'tokenized-stock' },
+  { key: 'rNVDA', label: 'rNVDA/USDT', bitget: 'RNVDAUSDT', fallbackPrice: 183.2, kind: 'tokenized-stock' },
+  { key: 'rAAPL', label: 'rAAPL/USDT', bitget: 'RAAPLUSDT', fallbackPrice: 262.8, kind: 'tokenized-stock' },
+  { key: 'rMSFT', label: 'rMSFT/USDT', bitget: 'RMSFTUSDT', fallbackPrice: 489.5, kind: 'tokenized-stock' },
+  { key: 'rMETA', label: 'rMETA/USDT', bitget: 'RMETAUSDT', fallbackPrice: 611.9, kind: 'tokenized-stock' },
 
 export function getSymbol(key: string): SymbolSpec {
   return SYMBOLS.find((s) => s.key === key) ?? SYMBOLS[0];
