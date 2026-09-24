@@ -3,16 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DebateRecord } from './types';
 
-const KEY = 'atlas.debates.v1';
 const MAX = 100;
 
-function load(): DebateRecord[] {
-  if (typeof window === 'undefined') return [];
+async function loadRemote(): Promise<DebateRecord[]> {
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    if (!r.ok) return [];
+    const body = (await r.json()) as { history: DebateRecord[] };
+    return Array.isArray(body.history) ? body.history : [];
   } catch {
     return [];
   }
@@ -23,21 +21,27 @@ export function useDebateHistory() {
   const hydrated = useRef(false);
 
   useEffect(() => {
-    setRecords(load());
-    hydrated.current = true;
+    let alive = true;
+    loadRemote().then((r) => {
+      if (!alive) return;
+      setRecords(r);
+      hydrated.current = true;
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!hydrated.current) return;
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(records));
-    } catch {
-      /* quota — ignore */
-    }
-  }, [records]);
-
   const add = useCallback((record: DebateRecord) => {
-    setRecords((prev) => [record, ...prev].slice(0, MAX));
+    setRecords((prev) => {
+      const next = [record, ...prev].slice(0, MAX);
+      fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history: next }),
+      }).catch(() => {});
+      return next;
+    });
   }, []);
 
   return { records, add };

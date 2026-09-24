@@ -12,8 +12,6 @@ import {
   type Ticker,
 } from './types';
 
-const KEY = 'atlas.paper.v1';
-
 export const emptyState = (): PaperState => ({
   version: 1,
   balance: START_BALANCE,
@@ -25,17 +23,21 @@ export const emptyState = (): PaperState => ({
   lastMessages: {},
 });
 
-function load(): PaperState {
-  if (typeof window === 'undefined') return emptyState();
+async function loadRemote(): Promise<PaperState> {
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return emptyState();
-    const parsed = JSON.parse(raw) as PaperState;
-    if (parsed?.version !== 1) return emptyState();
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    if (!r.ok) return emptyState();
+    const body = (await r.json()) as { paper: PaperState | null };
+    const parsed = body.paper;
+    if (!parsed || parsed.version !== 1) return emptyState();
     return { ...emptyState(), ...parsed, settings: { ...emptyState().settings, ...parsed.settings } };
   } catch {
     return emptyState();
   }
+}
+
+function persistKeyFor(s: PaperState): string {
+  return JSON.stringify({ ...s, positions: s.positions.map(({ markPrice, ...rest }) => rest) });
 }
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -45,19 +47,34 @@ export function usePaper() {
   const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const lastPersistKey = useRef<string | null>(null);
 
   useEffect(() => {
-    setState(load());
-    setHydrated(true);
+    let alive = true;
+    loadRemote().then((s) => {
+      if (!alive) return;
+      setState(s);
+      lastPersistKey.current = persistKeyFor(s);
+      setHydrated(true);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-      /* quota — ignore */
-    }
+    const key = persistKeyFor(state);
+    if (lastPersistKey.current === key) return;
+    const t = window.setTimeout(() => {
+      lastPersistKey.current = key;
+      fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paper: state }),
+      }).catch(() => {});
+    }, 1200);
+    return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
   const setSettings = useCallback((patch: Partial<Settings>) => {

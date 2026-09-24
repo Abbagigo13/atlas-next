@@ -19,6 +19,7 @@ import type { Decision, Ticker } from '@/lib/atlas/types';
 import PriceChart from './PriceChart';
 import HistoryPanel from './HistoryPanel';
 import { useDebateHistory } from '@/lib/atlas/useDebateHistory';
+import { useOperator } from '@/lib/atlas/useOperator';
 import Watchlist from './Watchlist';
 
 const POLL_MS = 15_000;
@@ -27,8 +28,9 @@ const AUTO_MS = 5 * 60_000;
 export default function Dashboard() {
   const paper = usePaper();
   const { settings } = paper.state;
-  const debate = useDebate(settings.speed);
+    const debate = useDebate(settings.speed);
   const history = useDebateHistory();
+  const { isOperator, ready: operatorReady } = useOperator();
   const historyStamp = useRef<string | null>(null);
   const fallbackFlagged = useRef<string | null>(null);
   const [panel, setPanel] = useState<PanelId>('debate');
@@ -48,10 +50,21 @@ export default function Dashboard() {
   const openSymbolsRef = useRef<string[]>(openSymbols);
   openSymbolsRef.current = openSymbols;
 
-  const flash = useCallback((msg: string) => {
+    const flash = useCallback((msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast((t) => (t === msg ? null : t)), 3200);
   }, []);
+
+  const guardedSetSettings = useCallback(
+    (patch: Parameters<typeof paper.setSettings>[0]) => {
+      if (!isOperator) {
+        flash('Spectator mode — read only');
+        return;
+      }
+      paper.setSettings(patch);
+    },
+    [isOperator, paper.setSettings, flash],
+  );
 
   useEffect(() => {
     if (!debate.meta?.fellBack) return;
@@ -88,8 +101,8 @@ export default function Dashboard() {
   }, [symbol, fetchTicker]);
 
   /** Mark open positions to market (any symbol) and auto-close on stop/target. */
-  useEffect(() => {
-    if (!paper.hydrated) return;
+    useEffect(() => {
+    if (!paper.hydrated || !isOperator) return;
     let alive = true;
     const run = async () => {
       const keys = openSymbolsRef.current;
@@ -109,7 +122,7 @@ export default function Dashboard() {
       alive = false;
       window.clearInterval(id);
     };
-  }, [paper.hydrated, paper.mark, fetchTicker, flash, openSymbols.length]);
+    }, [paper.hydrated, isOperator, paper.mark, fetchTicker, flash, openSymbols.length]);
 
   /** Keep the Agents panel samples fresh. */
   useEffect(() => {
@@ -118,7 +131,11 @@ export default function Dashboard() {
     });
   }, [debate.messages, paper.rememberMessage]);
 
-  const startDebate = useCallback(async () => {
+    const startDebate = useCallback(async () => {
+    if (!isOperator) {
+      flash('Spectator mode — read only');
+      return;
+    }
     setPanel('debate');
     setExecutedFor(null);
     let t = tickerRef.current;
@@ -131,10 +148,14 @@ export default function Dashboard() {
       return;
     }
     await debate.run(t);
-  }, [debate, fetchTicker, flash, symbol]);
+    }, [debate, fetchTicker, flash, symbol, isOperator]);
 
-  const executeDecision = useCallback(
+    const executeDecision = useCallback(
     (override?: Partial<Decision>) => {
+      if (!isOperator) {
+        flash('Spectator mode — read only');
+        return;
+      }
       const d = debate.decision;
       const t = tickerRef.current;
       if (!d || !t) return;
@@ -145,28 +166,29 @@ export default function Dashboard() {
         setPanel('positions');
       }
     },
-    [debate.decision, paper, flash],
+        [debate.decision, paper, flash, isOperator],
   );
 
   /** Auto-execute the verdict when enabled. */
-  const autoRef = useRef<string | null>(null);
+    const autoRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!isOperator) return;
     const d = debate.decision;
     if (!settings.autoExecute || !d || debate.status !== 'done' || d.action === 'WAIT') return;
     const stamp = `${symbol}-${d.entry}-${d.action}-${d.confidence}`;
     if (autoRef.current === stamp) return;
     autoRef.current = stamp;
     executeDecision();
-  }, [debate.decision, debate.status, settings.autoExecute, symbol, executeDecision]);
+    }, [debate.decision, debate.status, settings.autoExecute, symbol, executeDecision, isOperator]);
 
   /** Auto mode: a fresh debate every 5 minutes. */
-  useEffect(() => {
-    if (!settings.autoMode) return;
+    useEffect(() => {
+    if (!settings.autoMode || !isOperator) return;
     const id = window.setInterval(() => {
       if (!debate.running) void startDebate();
     }, AUTO_MS);
     return () => window.clearInterval(id);
-  }, [settings.autoMode, debate.running, startDebate]);
+  }, [settings.autoMode, debate.running, startDebate, isOperator]);
 
   const spec = getSymbol(symbol);
   useEffect(() => {
@@ -221,10 +243,18 @@ export default function Dashboard() {
             onStop={debate.stop}
             onRefresh={() => void fetchTicker(symbol).then((t) => t && setTicker(t))}
             settings={settings}
-            onSettings={paper.setSettings}
+            onSettings={guardedSetSettings}
             onOpenMenu={() => setMenuOpen(true)}
             title={title}
           />
+
+          {operatorReady && !isOperator && (
+            <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
+              <div className="glass rounded-xl px-4 py-2 text-xs font-semibold text-amber-300">
+                Spectator mode — live read-only view. Trading controls are disabled on this device.
+              </div>
+            </div>
+          )}
 
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:py-8">
             {panel === 'debate' && (
@@ -253,7 +283,11 @@ export default function Dashboard() {
             {panel === 'positions' && (
               <PositionsPanel
                 positions={paper.state.positions}
-                onClose={(id, exit) => {
+                                onClose={(id, exit) => {
+                  if (!isOperator) {
+                    flash('Spectator mode — read only');
+                    return;
+                  }
                   paper.closePosition(id, exit, 'manual');
                   flash('Position closed at mark');
                 }}
@@ -290,8 +324,12 @@ export default function Dashboard() {
             {panel === 'settings' && (
               <SettingsPanel
                 settings={settings}
-                onChange={paper.setSettings}
-                onReset={() => {
+                                onChange={guardedSetSettings}
+                                onReset={() => {
+                  if (!isOperator) {
+                    flash('Spectator mode — read only');
+                    return;
+                  }
                   paper.reset();
                   flash('Paper account reset to $3,000');
                 }}
