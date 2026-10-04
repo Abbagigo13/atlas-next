@@ -16,7 +16,7 @@ const STATS: Stat[] = [
   { target: 3, label: 'AI Agents debating per trade' },
   { target: 24, literal: '24/7', label: 'Autonomous operation' },
   { target: 0, label: 'Real funds at risk' },
-  { target: 5, prefix: '<', suffix: 's', label: 'Decision latency' },
+  { target: 50, prefix: '<', suffix: 's', label: 'Decision latency' },
 ];
 
 const DURATION = 1500;

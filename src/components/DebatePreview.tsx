@@ -1,48 +1,87 @@
-import { ArrowRight, Clock, Shield, TrendingDown, TrendingUp } from 'lucide-react';
-import Reveal from './Reveal';
+'use client';
 
-const THREAD = [
-  {
+import { ArrowRight, Clock, Shield, TrendingDown, TrendingUp } from 'lucide-react';
+import { useMemo } from 'react';
+import Reveal from './Reveal';
+import { useLatestDebate } from '@/lib/atlas/useLatestDebate';
+
+const STYLE = {
+  bull: {
     agent: 'Bull Agent',
-    time: '14:02:11',
     icon: TrendingUp,
     align: 'left' as const,
     bubble: 'border-emerald-400/25 bg-emerald-400/[0.07]',
     iconClass: 'border-emerald-400/35 bg-emerald-400/12 text-emerald-300',
     label: 'text-emerald-300',
-    body: 'BTC just reclaimed the 4h VWAP with rising volume and RSI divergence off the $76,900 sweep. Funding is flat, order book shows thinning asks to $77,510. This is a clean long: entry $77,150, target $77,510.',
-    confidence: 'Conviction 72%',
   },
-  {
+  bear: {
     agent: 'Bear Agent',
-    time: '14:02:14',
     icon: TrendingDown,
     align: 'right' as const,
     bubble: 'border-rose-400/25 bg-rose-400/[0.07]',
     iconClass: 'border-rose-400/35 bg-rose-400/12 text-rose-300',
     label: 'text-rose-300',
-    body: 'Disagree on size. Macro is Risk-Off — DXY bid, equities fading into the close. The 24h range is only 0.9% wide, so a reclaim inside chop is not a breakout. Wait for a close above $77,400 before committing.',
-    confidence: 'Conviction 58%',
   },
-  {
+  risk: {
     agent: 'Risk Manager',
-    time: '14:02:17',
     icon: Shield,
     align: 'left' as const,
     bubble: 'border-amber-300/25 bg-amber-300/[0.07]',
     iconClass: 'border-amber-300/35 bg-amber-300/12 text-amber-200',
     label: 'text-amber-200',
+  },
+} as const;
+
+const FALLBACK_THREAD = [
+  {
+    ...STYLE.bull,
+    time: '14:02:11',
+    body: 'BTC just reclaimed the 4h VWAP with rising volume and RSI divergence off the $76,900 sweep. Funding is flat, order book shows thinning asks to $77,510. This is a clean long: entry $77,150, target $77,510.',
+    confidence: 'Conviction 72%',
+  },
+  {
+    ...STYLE.bear,
+    time: '14:02:14',
+    body: 'Disagree on size. Macro is Risk-Off — DXY bid, equities fading into the close. The 24h range is only 0.9% wide, so a reclaim inside chop is not a breakout. Wait for a close above $77,400 before committing.',
+    confidence: 'Conviction 58%',
+  },
+  {
+    ...STYLE.risk,
+    time: '14:02:17',
     body: 'Both cases hold. Bull has the structure, Bear has the regime. Verdict: take the long at half size — 0.5x with a tight stop under the sweep low. Risk 0.22% of book, R:R 2.1. Green-lit.',
     confidence: 'Verdict · LONG 0.5x',
   },
 ] as const;
 
 export default function DebatePreview() {
+  const { latest } = useLatestDebate();
+
+  const thread = useMemo(() => {
+    if (!latest) return FALLBACK_THREAD;
+    const picked = latest.messages.filter(
+      (m): m is typeof m & { agent: 'bull' | 'bear' | 'risk' } =>
+        m.agent === 'bull' || m.agent === 'bear' || m.agent === 'risk',
+    );
+    if (picked.length < 3) return FALLBACK_THREAD;
+    return picked.map((m) => ({
+      ...STYLE[m.agent],
+      time: new Date(m.ts).toLocaleTimeString('en-GB', { hour12: false }),
+      body: m.text,
+      confidence:
+        m.agent === 'risk'
+          ? `Verdict · ${latest.decision.action}${latest.decision.action !== 'WAIT' ? ` ${latest.decision.sizeMultiplier}x` : ''}`
+          : '',
+    }));
+  }, [latest]);
+
+  const headerLabel = latest ? `${latest.label} · live` : 'Debate #1,284 · BTC/USDT · 4h';
+  const latencyLabel = latest
+    ? `${(((latest.messages.at(-1)?.ts ?? 0) - (latest.messages[0]?.ts ?? 0)) / 1000).toFixed(1)}s`
+    : '4.1s';
+  const order = latest?.decision ?? null;
+
   return (
-    <section
-      id="debate"
-      className="relative scroll-mt-24 overflow-hidden py-24 lg:py-32"
-    >
+    <section id="debate" className="relative scroll-mt-24 overflow-hidden py-24 lg:py-32">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute top-24 -left-20 h-80 w-80 rounded-full bg-signal/10 blur-[120px]" />
         <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-brand-soft/40 blur-[120px]" />
@@ -51,9 +90,7 @@ export default function DebatePreview() {
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <Reveal>
-            <p className="text-xs font-bold tracking-[0.22em] text-signal-bright">
-              TRANSPARENCY
-            </p>
+            <p className="text-xs font-bold tracking-[0.22em] text-signal-bright">TRANSPARENCY</p>
           </Reveal>
           <Reveal delay={80}>
             <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.02em] sm:text-4xl lg:text-5xl">
@@ -72,81 +109,83 @@ export default function DebatePreview() {
           <div className="glass relative overflow-hidden rounded-3xl">
             <div className="hairline-top absolute inset-x-12 top-0 h-px" />
 
-            {/* chat header */}
             <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4 sm:px-7">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1">
                   <span className="pulse-ring-green h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[10px] font-bold tracking-[0.16em] text-emerald-300">
-                    LIVE
-                  </span>
+                  <span className="text-[10px] font-bold tracking-[0.16em] text-emerald-300">LIVE</span>
                 </span>
-                <span className="truncate text-sm font-semibold text-white/85">
-                  Debate #1,284 · BTC/USDT · 4h
-                </span>
+                <span className="truncate text-sm font-semibold text-white/85">{headerLabel}</span>
               </div>
               <span className="hidden shrink-0 items-center gap-1.5 font-mono text-xs text-muted-foreground sm:flex">
                 <Clock className="h-3.5 w-3.5" />
-                4.1s
+                {latencyLabel}
               </span>
             </div>
 
-            {/* thread */}
             <div className="flex flex-col gap-5 px-4 py-6 sm:px-7 sm:py-8">
-              {THREAD.map((m) => (
+              {thread.map((m, i) => (
                 <div
-                  key={m.agent}
-                  className={[
-                    'flex w-full min-w-0 gap-3',
-                    m.align === 'right' ? 'sm:flex-row-reverse' : '',
-                  ].join(' ')}
+                  key={`${m.agent}-${i}`}
+                  className={['flex w-full min-w-0 gap-3', m.align === 'right' ? 'sm:flex-row-reverse' : ''].join(' ')}
                 >
-                  <span
-                    className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${m.iconClass}`}
-                  >
+                  <span className={`mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${m.iconClass}`}>
                     <m.icon className="h-4.5 w-4.5" strokeWidth={2.2} />
                   </span>
-
-                  <div
-                    className={[
-                      'min-w-0 flex-1 rounded-2xl border p-4 sm:max-w-[85%] sm:p-5',
-                      m.bubble,
-                    ].join(' ')}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      <span className={`text-sm font-bold ${m.label}`}>
-                        {m.agent}
-                      </span>
-                      <span className="font-mono text-[11px] text-muted-foreground">
-                        {m.time}
-                      </span>
+                  <div className={['min-w-0 flex-1 rounded-2xl border p-4 sm:max-w-[85%] sm:p-5', m.bubble].join(' ')}>
+                    <div className="flex flex-wrap items-center justify-between ga5gap-y-1">
+                      <span className={`text-sm font-bold ${m.label}`}>{m.agent}</span>
+                      <span className="font-mono text-[11px] text-muted-foreground">{m.time}</span>
                     </div>
-                    <p className="mt-2.5 text-sm leading-relaxed text-white/80">
-                      {m.body}
-                    </p>
-                    <span className="mt-3 inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
-                      {m.confidence}
-                    </span>
+                    <p className="mt-2.5 text-sm leading-relaxed text-white/80">{m.body}</p>
+                    {m.confidence && (
+                      <span className="mt-3 inline-flex rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+                        {m.confidence}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* execute row */}
             <div className="flex flex-col gap-4 border-t border-white/8 bg-signal/[0.05] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold tracking-[0.18em] text-signal-bright">
-                  FINAL ORDER
-                </p>
+                <p className="text-[10px] font-bold tracking-[0.18em] text-signal-bright">FINAL ORDER</p>
                 <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 font-mono text-sm font-semibold">
-                  <span className="rounded-md bg-emerald-400/15 px-2 py-0.5 text-emerald-300">
-                    LONG 0.5x
-                  </span>
-                  <span className="text-white">$77,150</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-rose-300/90">SL $76,980</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-emerald-300/90">TP $77,510</span>
+                  {order ? (
+                    <>
+                      <span
+                        className={`rounded-md px-2 py-0.5 ${
+                          order.action === 'LONG'
+                            ? 'bg-emerald-400/15 text-emerald-300'
+                            : order.action === 'SHORT'
+                              ? 'bg-rose-400/15 text-rose-300'
+                              : 'bg-amber-300/15 text-amber-200'
+                        }`}
+                      >
+                        {order.action}
+                        {order.action !== 'WAIT' ? ` ${order.sizeMultiplier}x` : ''}
+                      </span>
+                      <span className="text-white">${order.entry.toLocaleString()}</span>
+                      {order.action !== 'WAIT' && (
+                        <>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-rose-300/90">SL ${order.stop.toLocaleString()}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-emerald-300/90">TP ${order.target.toLocaleString()}</span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="rounded-md bg-emerald-400/15 px-2 py-0.5 text-emerald-300">LONG 0.5x</span>
+                      <span className="text-white">$77,150</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-rose-300/90">SL $76,980</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-emerald-300/90">TP $77,510</span>
+                    </>
+                  )}
                 </p>
               </div>
               <a

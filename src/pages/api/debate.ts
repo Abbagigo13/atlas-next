@@ -13,7 +13,7 @@ function apiKey() {
 
 async function qwen(messages: Array<{ role: string; content: string }>, maxTokens = 320) {
   const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 14_000);
+      const timer = setTimeout(() => ctrl.abort(), 17_000);
   try {
     const r = await fetch(QWEN_URL, {
       method: 'POST',
@@ -142,25 +142,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     const decision = sanitize(extractJson(riskRaw) ?? {}, ticker, local.decision);
 
-    let trader: string;
-    try {
-      trader = await qwen(
-        [
-          {
-            role: 'system',
-            content:
-              'You are the Trader Agent. You log exactly one sentence describing the execution you just performed on the paper book. No markdown.',
-          },
-          {
-            role: 'user',
-            content: `Instrument ${ticker.label}. Verdict: ${JSON.stringify(decision)}. Write the execution log line.`,
-          },
-        ],
-        120,
-      );
-    } catch {
-      trader = local.messages[3].text;
-    }
+        const trader =
+      decision.action === 'WAIT'
+        ? `No order sent — logging a WAIT on ${ticker.label} and re-arming the watcher.`
+        : `Paper ${decision.action} ${ticker.label} filled at ${decision.entry}, ${decision.sizeMultiplier}x size, OCO stop ${decision.stop} / target ${decision.target} live.`;
     const traderTs = Date.now();
 
     return res.status(200).json({
