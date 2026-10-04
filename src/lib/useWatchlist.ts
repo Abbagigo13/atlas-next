@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Ticker } from './types';
+type Ticker = {
+  symbol: string;
+  [key: string]: unknown;
+};
 
 const POLL_MS = 15_000;
 

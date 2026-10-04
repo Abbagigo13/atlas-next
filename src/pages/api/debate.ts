@@ -182,7 +182,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       decision,
       latencyMs: Date.now() - started,
     });
-  } catch {
+    } catch (err) {
+    console.error('[debate] qwen chain failed:', err instanceof Error ? err.message : err);
     return res.status(200).json({
       symbol: ticker.symbol,
       price: ticker.price,
