@@ -131,11 +131,7 @@ export default function Dashboard() {
     });
   }, [debate.messages, paper.rememberMessage]);
 
-    const startDebate = useCallback(async () => {
-    if (!isOperator) {
-      flash('Spectator mode — read only');
-      return;
-    }
+      const startDebate = useCallback(async () => {
     setPanel('debate');
     setExecutedFor(null);
     let t = tickerRef.current;
@@ -148,7 +144,7 @@ export default function Dashboard() {
       return;
     }
     await debate.run(t);
-    }, [debate, fetchTicker, flash, symbol, isOperator]);
+      }, [debate, fetchTicker, flash, symbol]);
 
     const executeDecision = useCallback(
     (override?: Partial<Decision>) => {
@@ -190,8 +186,9 @@ export default function Dashboard() {
     return () => window.clearInterval(id);
   }, [settings.autoMode, debate.running, startDebate, isOperator]);
 
-  const spec = getSymbol(symbol);
+    const spec = getSymbol(symbol);
   useEffect(() => {
+    if (!isOperator) return;
     if (debate.status !== 'done' || !debate.decision || !debate.meta) return;
     const t = tickerRef.current;
     if (!t || t.symbol !== symbol) return;
@@ -209,7 +206,7 @@ export default function Dashboard() {
       decision: debate.decision,
       messages: debate.messages,
     });
-  }, [debate.status, debate.decision, debate.meta, debate.messages, symbol, spec.label, history]);
+    }, [isOperator, debate.status, debate.decision, debate.meta, debate.messages, symbol, spec.label, history]);
 
   const decisionStamp = debate.decision
     ? `${symbol}-${debate.decision.entry}-${debate.decision.action}`
@@ -251,7 +248,7 @@ export default function Dashboard() {
           {operatorReady && !isOperator && (
             <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
               <div className="glass rounded-xl px-4 py-2 text-xs font-semibold text-amber-300">
-                Spectator mode — live read-only view. Trading controls are disabled on this device.
+                                Spectator mode — you can run a live debate yourself, but execution and account controls are disabled on this device.
               </div>
             </div>
           )}

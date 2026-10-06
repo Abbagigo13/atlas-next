@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 const KEY = 'atlas.operator';
+const SECRET = process.env.NEXT_PUBLIC_OPERATOR_KEY ?? '';
 
 export function useOperator() {
   const [isOperator, setIsOperator] = useState(false);
@@ -10,7 +11,8 @@ export function useOperator() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('operator') === '1') {
+    const provided = params.get('operator');
+    if (SECRET && provided === SECRET) {
       window.localStorage.setItem(KEY, '1');
     }
     setIsOperator(window.localStorage.getItem(KEY) === '1');
