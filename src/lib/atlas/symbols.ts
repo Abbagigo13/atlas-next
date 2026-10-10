@@ -21,7 +21,10 @@ export const SYMBOLS: SymbolSpec[] = [
   { key: 'rNVDA', label: 'rNVDA/USDT', bitget: 'RNVDAUSDT', fallbackPrice: 183.2, kind: 'tokenized-stock' },
   { key: 'rAAPL', label: 'rAAPL/USDT', bitget: 'RAAPLUSDT', fallbackPrice: 262.8, kind: 'tokenized-stock' },
   { key: 'rMSFT', label: 'rMSFT/USDT', bitget: 'RMSFTUSDT', fallbackPrice: 489.5, kind: 'tokenized-stock' },
-  { key: 'rMETA', label: 'rMETA/USDT', bitget: 'RMETAUSDT', fallbackPrice: 611.9, kind: 'tokenized-stock' },
+    { key: 'rMETA', label: 'rMETA/USDT', bitget: 'RMETAUSDT', fallbackPrice: 611.9, kind: 'tokenized-stock' },
+  { key: 'rAMZN', label: 'rAMZN/USDT', bitget: 'RAMZNUSDT', fallbackPrice: 245.0, kind: 'tokenized-stock' },
+  { key: 'rGOOGL', label: 'rGOOGL/USDT', bitget: 'RGOOGLUSDT', fallbackPrice: 195.0, kind: 'tokenized-stock' },
+  { key: 'rQQQ', label: 'rQQQ/USDT', bitget: 'RQQQUSDT', fallbackPrice: 520.0, kind: 'tokenized-stock' },
 ];
 
 export function getSymbol(key: string): SymbolSpec {
